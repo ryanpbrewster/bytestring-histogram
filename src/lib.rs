@@ -19,7 +19,6 @@ impl QDigest {
         let mut q = BinaryHeap::new();
         q.push(&mut self.root);
         while let Some(node) = q.pop() {
-            println!("{} gas left @ {:?}\n", gas, node);
             if node.children.len() > gas {
                 node.children.clear();
                 continue;
@@ -85,15 +84,10 @@ mod tests {
     fn basic_smoke_test() {
         let mut h = QDigest::default();
         h.insert(b"0011", 9);
-        println!("{:?}\n", h);
         h.insert(b"0022", 9);
-        println!("{:?}\n", h);
         h.insert(b"AA11", 1);
-        println!("{:?}\n", h);
         h.insert(b"AA22", 1);
-        println!("{:?}\n", h);
         h.compress(8);
-        println!("{:?}\n", h);
         assert_eq!(
             h.boundaries(),
             vec![b"0011".to_vec(), b"0022".to_vec(), b"AA".to_vec()]
@@ -104,15 +98,10 @@ mod tests {
     fn insert_below_node() {
         let mut h = QDigest::default();
         h.insert(b"00", 9);
-        println!("{:?}\n", h);
         h.insert(b"0011", 9);
-        println!("{:?}\n", h);
         h.insert(b"AA11", 1);
-        println!("{:?}\n", h);
         h.insert(b"AA22", 1);
-        println!("{:?}\n", h);
         h.compress(7);
-        println!("{:?}\n", h);
         assert_eq!(
             h.boundaries(),
             vec![b"00".to_vec(), b"0011".to_vec(), b"AA".to_vec()]
