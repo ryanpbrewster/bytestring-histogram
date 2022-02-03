@@ -35,13 +35,15 @@ impl QDigest {
         let mut acc = Vec::new();
         let mut cur = Vec::new();
         boundaries_helper(&mut acc, &mut cur, &self.root);
+        acc.reverse();
         acc
     }
 }
 
+// Does a post-order traversal of the trie.
 fn boundaries_helper(acc: &mut Vec<Vec<u8>>, cur: &mut Vec<u8>, node: &Node) {
     let mut total = 0;
-    for (&b, child) in &node.children {
+    for (&b, child) in node.children.iter().rev() {
         total += child.weight;
         cur.push(b);
         boundaries_helper(acc, cur, child);
@@ -80,7 +82,7 @@ mod tests {
     use crate::QDigest;
 
     #[test]
-    fn it_works() {
+    fn basic_smoke_test() {
         let mut h = QDigest::default();
         h.insert(b"0011", 9);
         println!("{:?}\n", h);
@@ -95,6 +97,25 @@ mod tests {
         assert_eq!(
             h.boundaries(),
             vec![b"0011".to_vec(), b"0022".to_vec(), b"AA".to_vec()]
+        );
+    }
+
+    #[test]
+    fn insert_below_node() {
+        let mut h = QDigest::default();
+        h.insert(b"00", 9);
+        println!("{:?}\n", h);
+        h.insert(b"0011", 9);
+        println!("{:?}\n", h);
+        h.insert(b"AA11", 1);
+        println!("{:?}\n", h);
+        h.insert(b"AA22", 1);
+        println!("{:?}\n", h);
+        h.compress(7);
+        println!("{:?}\n", h);
+        assert_eq!(
+            h.boundaries(),
+            vec![b"00".to_vec(), b"0011".to_vec(), b"AA".to_vec()]
         );
     }
 }
