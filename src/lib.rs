@@ -18,8 +18,8 @@ impl QDigest {
 
     pub fn quantile(&self, p: f64) -> Vec<u8> {
         let mut cur = Vec::new();
-        let mut gas = (self.total_weight as f64 * p) as u64;
-        explore(&self.root, &mut gas, &mut cur);
+        let gas = (self.total_weight as f64 * p) as u64;
+        self.root.explore(gas, &mut cur);
         cur
     }
 }
@@ -54,18 +54,23 @@ impl Node {
             self.weight = total;
         }
     }
-}
 
-fn explore(node: &Node, gas: &mut u64, key: &mut Vec<u8>) {
-    for (&b, child) in &node.children {
-        key.push(b);
-        explore(child, gas, key);
-        if *gas == 0 {
-            return;
+    // returns how much gas is left after exploring
+    fn explore(&self, gas: u64, key: &mut Vec<u8>) -> u64 {
+        let mut remaining = gas.saturating_sub(self.weight);
+        if remaining == 0 {
+            return 0;
         }
-        key.pop();
+        for (&b, child) in &self.children {
+            key.push(b);
+            remaining = child.explore(remaining, key);
+            if remaining == 0 {
+                return 0;
+            }
+            key.pop();
+        }
+        remaining
     }
-    *gas = gas.saturating_sub(node.weight);
 }
 
 #[cfg(test)]
@@ -76,15 +81,10 @@ mod tests {
     fn basic_smoke_test() {
         let mut h = QDigest::default();
         h.insert(b"0011", 9);
-        println!("{:?}\n", h);
         h.insert(b"0022", 9);
-        println!("{:?}\n", h);
         h.insert(b"AA11", 1);
-        println!("{:?}\n", h);
         h.insert(b"AA22", 1);
-        println!("{:?}\n", h);
-        h.compress(3);
-        println!("{:?}\n", h);
+        h.compress(11);
         assert_eq!(h.quantile(0.1), b"0011".to_vec(),);
         assert_eq!(h.quantile(0.5), b"0022".to_vec(),);
     }
@@ -96,7 +96,10 @@ mod tests {
         h.insert(b"0011", 9);
         h.insert(b"AA11", 1);
         h.insert(b"AA22", 1);
-        h.compress(7);
-        assert_eq!(h.quantile(0.99), b"AA".to_vec(),);
+        h.compress(11);
+        assert_eq!(h.quantile(0.10), b"00".to_vec(),);
+        assert_eq!(h.quantile(0.50), b"0011".to_vec(),);
+        assert_eq!(h.quantile(0.95), b"AA1".to_vec(),);
+        assert_eq!(h.quantile(1.00), b"AA2".to_vec(),);
     }
 }
